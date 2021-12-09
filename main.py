@@ -25,3 +25,23 @@ class header:
         if(self.command not in [1,2]):
             print("Invalid command in header")
             return False
+class entry:
+    def __init__(self, tag, address, subnetMask, nextHop, metric):
+        self.afi = 2
+        self.tag = tag
+        self.address = address
+        self.subnetMask = subnetMask
+        self.nextHop = nextHop
+        self.metric = metric
+
+
+    def returnareEntry(self):
+        return struct.pack('hiiii', self.tag, self.address, self.subnetMask, self.nextHop, self.metric)
+    def isValidEntry(self):
+        if(self.metric>15):
+            print("Metrica nu trebuie sa fie mai mare decat 16!")
+            return False
+        else:
+            return True
+    def setMetric(self, x):
+        self.metric=x
