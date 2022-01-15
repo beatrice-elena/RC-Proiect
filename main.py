@@ -7,18 +7,18 @@ from turtle import update
 
 
 class header:
-    def __init__(self, command, virtualBoxId):
+    def __init__(self, command, virtualBoxId,tag,address,subnetMask):
         self.command = command
         self.version = 2
         self.setUnused = 0
         self.virtualBoxId = virtualBoxId
-
-    def showH(self):
-        print("Command:", self.command, " Version:", self.version, " setUnused:", self.setUnused, " VirtualBoxID:",
-              self.virtualBoxId)
+        self.afi = 2
+        self.tag = tag
+        self.address = address
+        self.subnetMask = subnetMask
 
     def pack(self):
-        return struct.pack('iii20s', self.command, self.version, self.setUnused, self.virtualBoxId)
+        return struct.pack('iii20sh20s13s13', self.command, self.version, self.setUnused, self.virtualBoxId, self.tag, self.address, self.subnetMask)
 
     def isValid(self):
         if (self.command not in [1, 2]):
@@ -27,17 +27,12 @@ class header:
 
 
 class entry:
-    def __init__(self, tag, address, subnetMask, nextHop, metric):
-        self.afi = 2
-        self.tag = tag
-        self.address = address
-        self.subnetMask = subnetMask
+    def __init__(self, nextHop, metric):
         self.nextHop = nextHop
         self.metric = metric
-        self.header = header
 
     def returnareEntry(self):
-        return struct.pack('h20s13s13si', self.tag, self.address, self.subnetMask, self.nextHop, self.metric)
+        return struct.pack('ii', self.nextHop, self.metric)
 
     def isValidEntry(self):
         if (self.metric > 15):
@@ -71,7 +66,9 @@ class tabelaRutare:
         data = []
         string = ""
         k = 1
-        header = struct.unpack('iii20s', self.header)
+        header = struct.unpack('iii20sh20s13s13', self.header)
+        print("HEADERUL!")
+        print(header)
         data.append(header)
         line = "+-----------+----------+-----------+---------------+----------+-------------+"
         #string = string + line
@@ -80,17 +77,14 @@ class tabelaRutare:
         print("|                              Routing Table                                |")
         print(line)
         #string = string + line
-        print("Command:", data[0][0], "VERSION:", data[0][1], "setUnused:", data[0][2], "VirtualBoxID:", data[0][3])
-        string=string+"Command:"+str(data[0][0])+ "VERSION:"+ str(data[0][1])+ "setUnused:"+ str(data[0][2])+"VirtualBoxID:"+ str(data[0][3])
+        print("Command:"+str(header[0])+ "VERSION:"+ str(header[1])+ "setUnused:"+ str(header[2])+"VirtualBoxID:"+ str(header[3])+"tag:"+str(header[4])+"address:"+str(header[5])+"subnetMask:"+str(header[6]))
+        string=string+"Command:"+str(header[0])+ "VERSION:"+ str(header[1])+ "setUnused:"+ str(header[2])+"VirtualBoxID:"+ str(header[3])+"tag:"+str(header[4])+"address:"+str(header[5])+"subnetMask:"+str(header[6])
         print(line)
         #string = string + line
         for x in range(len(self.entries)):
-            data.append(struct.unpack('h20s13s13si', self.entries[x]))
-            print("AFI:", 2, "Tag:", data[x + k][0], "Address:", str(data[x + k][1]), "SubnetMask:", str(data[x + k][2]),
-                  "NextHop:", str(data[x + k][3]), "Metric:", data[x + k][4])
-            string = string + (
-                    "AFI: 2 Tag:" + str(data[x + k][0]) + "Address:" + str(data[x + k][1]) + "SubnetMask:" + str(
-                data[x + k][2]) + "NextHop:" + str(data[x + k][3]) + "Metric:" + str(data[x + k][4]))
+            w=struct.unpack('ii', self.entries[x])
+            print("NextHop:", str(w[0]), "Metric:", w[1])
+            string = string +"NextHop:"+ str(w[0])+ "Metric:"+ str(w[1])
             print(line)
             #string = string + line
             # k=k+1
@@ -104,6 +98,11 @@ class tabelaRutare:
             self.adaugareEntry(entry)
         if (flag == 0):
             self.deleteEntry(entry)
+    def stergereEntries(self):
+    	#for entry in self.entries:
+    	self.entries[:]=[]
+
+
 
 
 class ruter:
@@ -160,8 +159,35 @@ class Connection:
         return "Conexiune".format(self.port)
 
 
-def show_packet(packet):
-    data = packet.unpack()
+class Graph:
+    def __init__(self, vertices):
+        self.V = vertices
+        self.graph = []
+
+    def addEdge(self, u, v, w):
+        self.graph.append([u, v, w])
+
+    def printArr(self, dist):
+        print("Vertex distance from source")
+        for i in range(self.V):
+            print("{0}\t\t{1}".format(i, dist[i]))
+
+    def BellmanFord(self, src):
+        dist = [float("Inf")] * self.V
+        dist[src] = 0
+        for _ in range(self.V - 1):
+            for u, v, w in self.graph:
+                if dist[u] != float("Inf") and dist[u] + w < dist[v]:
+                    dist[v] = dist[u] + w
+        for u, v, w in self.graph:
+            if dist[u] != float("Inf") and dist[u] + w < dist[v]:
+                print("Graph contains negative weight cycle")
+                return
+        print("aici")
+        print(dist)
+
+        self.printArr(dist)
+        return dist
 
 
 
