@@ -4,6 +4,7 @@ import socket
 import struct
 import time
 from turtle import update
+import ast
 
 
 class header:
@@ -210,8 +211,102 @@ s.bind((p, 5000))
 host = socket.gethostbyname(socket.gethostname())
 s.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
 s.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(p) + socket.inet_aton(host))
-
+nghbs = {}
+addrs = []
+dict = {}
+print('Asteapta conexiuni (oprire server cu Ctrl-C)')
+header1 = header(1, '192.168.0.107', 2, '192.168.0.107', '255.255.255.0')
+neighbours = {2: 1, 5: 1}
+s.sendto(str(neighbours), (p, 5000))
+acestRuter = 1
+g = Graph(6)
+for key in neighbours:
+    g.addEdge(acestRuter, key, neighbours[key])
+print(g.BellmanFord(acestRuter))
+a = g.BellmanFord(acestRuter)
+print("ssssssssssssssssssssssssss")
+print(a[1], a[2], a[3], a[4], a[5])
+if a[1] == float("Inf"):
+    a[1] = 1000
+if a[2] == float("Inf"):
+    a[2] = 1000
+if a[3] == float("Inf"):
+    a[3] = 1000
+if a[4] == float("Inf"):
+    a[4] = 1000
+if a[5] == float("Inf"):
+    a[5] = 1000
+entry1 = entry(1, a[1])
+entry2 = entry(2, a[2])
+entry3 = entry(3, a[3])
+entry4 = entry(4, a[4])
+entry5 = entry(5, a[5])
+pack = tabelaRutare(header1)
+pack.adaugareEntry(entry1)
+pack.adaugareEntry(entry2)
+pack.adaugareEntry(entry3)
+pack.adaugareEntry(entry4)
+pack.adaugareEntry(entry5)
 while 1:
     data, addr = s.recvfrom(1024)
+    print('adresa este: ', str(addr)[1:16])
+    print("s-a receptionat" + str(data))
 
+    print("Dictionarul este: ")
+    start = (str(data)).find("{") + len("{")
+    end = (str(data)).find("}")
+    substring = (str(data))[start:end]
+    res = ast.literal_eval("{" + substring + "}")
+    print(res)
+    if str(addr)[1:16] == "'192.168.0.101'":
+        addrsa = 2
+    elif str(addr)[1:16] == "'192.168.0.107'":
+        addrsa = 1
+    elif str(addr)[1:16] == "'192.168.0.111'":
+        addrsa = 5
+    elif str(addr)[1:16] == "'192.168.0.109'":
+        addrsa = 4
+    elif str(addr)[1:16] == "'192.168.0.108'":
+        addrsa = 3
 
+    for add in addrs:
+        s.sendto(str(addrsa) + ":" + str(data), add)
+    print("fsssssssssssssssssssssssss")
+    print(str(data)[0:1])
+    for key in res:
+        if str(data)[0:1] == '1':
+            g.addEdge(1, key, res[key])
+        if str(data)[0:1] == '2':
+            g.addEdge(2, key, res[key])
+        if str(data)[0:1] == '3':
+            g.addEdge(3, key, res[key])
+        if str(data)[0:1] == '4':
+            g.addEdge(4, key, res[key])
+        if str(data)[0:1] == '5':
+            g.addEdge(5, key, res[key])
+    addrs.append(addr)
+    print(g.BellmanFord(acestRuter))
+    a = g.BellmanFord(acestRuter)
+    if a[1] == float("Inf"):
+        a[1] = 1000
+    if a[2] == float("Inf"):
+        a[2] = 1000
+    if a[3] == float("Inf"):
+        a[3] = 1000
+    if a[4] == float("Inf"):
+        a[4] = 1000
+    if a[5] == float("Inf"):
+        a[5] = 1000
+    entry1 = entry(1, a[1])
+    entry2 = entry(2, a[2])
+    entry3 = entry(3, a[3])
+    entry4 = entry(4, a[4])
+    entry5 = entry(5, a[5])
+    pack.stergereEntries()
+    pack.adaugareEntry(entry1)
+    pack.adaugareEntry(entry2)
+    pack.adaugareEntry(entry3)
+    pack.adaugareEntry(entry4)
+    pack.adaugareEntry(entry5)
+
+    pack.unpack()
