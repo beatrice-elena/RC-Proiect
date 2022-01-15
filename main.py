@@ -190,14 +190,28 @@ class Graph:
         return dist
 
 
-
-
 # Creaza un socket IPv4, TCP
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# Asociere la adresa locala, portul 5000
-s.bind(('0.0.0.0', 5000))
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
-print('Asteapta conexiuni (oprire server cu Ctrl-C)')
+# Asociere la adresa locala, portul 5000
+
+# Coada de asteptare pentru conexiuni de lungime 1
+# s.listen(5)
+# Asteapta conexiuni
+p = '224.0.0.251'
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
+s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
+IS_ALL_GROUPS = True
+
+s.bind((p, 5000))
+
+# mreq=struct.pack("4sl", socket.inet_aton('224.0.0.9'), socket.INADDR_ANY)
+host = socket.gethostbyname(socket.gethostname())
+s.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
+s.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(p) + socket.inet_aton(host))
+
 while 1:
-    data,addr=s.recvfrom(1024)
-    s.sendto("Transmitere mesaj",addr)
+    data, addr = s.recvfrom(1024)
+
+
