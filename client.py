@@ -6,7 +6,7 @@ import time
 def unpack(header):
     return struct.unpack('iii',header.encode());
 
-s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #s.connect(('10.0.2.15',5000))
 #s.connect(('192.168.0.107',5000))
 s.connect(('127.0.0.1',5000))
