@@ -166,4 +166,124 @@ class Connection:
 
 def show_packet(packet):
     data = packet.unpack()
+    
+
+#Bellman-Ford de pe geeksforgeeks
+class Graph:
+	def __init__(self, vertices):
+		self.V=vertices
+		self.graph=[]
+	def addEdge(self,u,v,w):
+		self.graph.append([u,v,w])
+	def printArr(self, dist):
+		print("Vertex distance from source")
+		for i in range(self.V):
+			print("{0}\t\t{1}".format(i,dist[i]))
+	def BellmanFord(self, src):
+		dist=[float("Inf")]*self.V
+		dist[src]=0
+		for _ in range (self.V-1):
+			for u, v, w in self.graph:
+				if dist[u]!=float("Inf") and dist[u]+w<dist[v]:
+					dist[v]=dist[u]+w
+		for u,v,w in self.graph:
+			if dist[u]!=float("Inf") and dist[u]+w<dist[v]:
+				print("Graph contains negative weight cycle")
+				return
+		self.printArr(dist)
+		return dist
+adresa='192.168.0.101'				
+neighbours2={"192.168.0.107":1, "192.168.0.111":1, "192.168.0.108":1}
+neighbours={1:1, 5:1, 3:1}
+rute=[]
+acestRuter=2	
+s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+s.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL,32)
+p2='192.168.0.107'
+p='224.0.0.251'
+#s.connect(("192.168.0.107",5000))
+#s.connect(("224.0.0.9",5000))
+#s.sendall(str(neighbours) )
+s.sendto("2:"+str(neighbours),(p,5000))
+g=Graph(6)
+for key in neighbours:
+	g.addEdge(acestRuter,key,neighbours[key])
+
+print(g.BellmanFord(acestRuter))
+a=g.BellmanFord(acestRuter)
+print("ssssssssssssssssssssssssss")
+print(a[1], a[2], a[3], a[4], a[5])
+if a[1]==float("Inf") :
+    a[1]=1000
+if a[2]==float("Inf") :
+    a[2]=1000
+if a[3]==float("Inf") :
+    a[3]=1000
+if a[4]==float("Inf"):
+    a[4]=1000
+if a[5]==float("Inf") :
+    a[5]=1000
+entry1=entry(1,a[1])
+entry2=entry(2,a[2])
+entry3=entry(3,a[3])
+entry4=entry(4,a[4])
+entry5=entry(5,a[5])
+header1=header(1,'192.168.0.101',2,'192.168.0.101','255.255.255.0')
+pack=tabelaRutare(header1)
+pack.adaugareEntry(entry1)
+pack.adaugareEntry(entry2)
+pack.adaugareEntry(entry3)
+pack.adaugareEntry(entry4)
+pack.adaugareEntry(entry5)
+pack.unpack()
+
+while True:
+	data=s.recvfrom(2048)
+	print('Am receptionat:', data)
+	rute.append(str(data))
+	print('adresa ar trebuie sa fie: ', str(data)[2:3])
+	start=(str(data)).find("{")+len("{")
+	end=(str(data)).find("}")
+	substring=(str(data))[start:end]
+	print('si dictionarul: ', "{"+substring+"}")
+	dictt=ast.literal_eval("{"+substring+"}")
+	print("speram sa iasa")
+	print(dictt)
+	for key in dictt:
+		if str(data)[2:3]=='1':
+			g.addEdge(1, key, dictt[key])
+		if str(data)[2:3]=='2':
+			g.addEdge(2, key, dictt[key])
+		if str(data)[2:3]=='3':
+			g.addEdge(3, key, dictt[key])
+		if str(data)[2:3]=='4':
+			g.addEdge(4, key, dictt[key])
+		if str(data)[2:3]=='5':
+			g.addEdge(5, key, dictt[key])	
+	print("Incercare Bellman-Ford")
+	print(g.BellmanFord(acestRuter))
+        a=g.BellmanFord(acestRuter)
+        if a[1]==float("Inf") :
+             a[1]=1000
+        if a[2]==float("Inf") :
+            a[2]=1000
+        if a[3]==float("Inf") :
+            a[3]=1000
+        if a[4]==float("Inf") :
+            a[4]=1000
+        if a[5]==float("Inf") :
+            a[5]=1000
+        entry1=entry(1,a[1])
+        entry2=entry(2,a[2])
+        entry3=entry(3,a[3])
+        entry4=entry(4,a[4])
+        entry5=entry(5,a[5])
+        pack.stergereEntries()
+        pack.adaugareEntry(entry1)
+        pack.adaugareEntry(entry2)
+        pack.adaugareEntry(entry3)
+        pack.adaugareEntry(entry4)
+        pack.adaugareEntry(entry5)
+      
+        pack.unpack()
 
