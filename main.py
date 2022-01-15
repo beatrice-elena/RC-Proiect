@@ -164,42 +164,14 @@ def show_packet(packet):
     data = packet.unpack()
 
 
-def comm_thread(conn, addr):
-    while 1:
-        data = conn.recv(1024)
-        # Daca functia recv returneaza None, clientul a inchis conexiunea
-        if not data:
-            break
-        print(addr, ': ', data)
-        # Trimite datele receptionate
-        #header1 = header(1, str(addr))
-        header1 = header(1, '192.168.0.107')
-        entry1=entry(1,bytes(addr),bytes('255.255.255.0'),bytes('192.168.0.106'),0)
-        packet1 = tabelaRutare(header1)
-        entry2=entry(1,bytes(addr),bytes('255.255.255.0'),bytes('192.168.0.104'),0)
-        packet1.adaugareEntry(entry1)
-        packet1.adaugareEntry(entry2)
-
-        conn.sendall(bytes(str(addr) + ' a trimis ' + packet1.unpack()))
-    conn.close()
 
 
 # Creaza un socket IPv4, TCP
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Asociere la adresa locala, portul 5000
 s.bind(('0.0.0.0', 5000))
-# Coada de asteptare pentru conexiuni de lungime 1
-s.listen(5)
-# Asteapta conexiuni
+
 print('Asteapta conexiuni (oprire server cu Ctrl-C)')
 while 1:
-    try:
-        conn, addr = s.accept()
-    # La apasarea tastelor Ctrl-C se iese din blucla while 1
-    except KeyboardInterrupt:
-        break
-    print('S-a conectat clientul', addr)
-    try:
-        threading.Thread(target=comm_thread, args=(conn, addr)).start()
-    except:
-        print("Eroare la pornirea thread-ului")
+    data,addr=s.recvfrom(1024)
+    s.sendto("Transmitere mesaj",addr)
