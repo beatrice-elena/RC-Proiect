@@ -3,9 +3,10 @@ import threading
 import socket
 import struct
 import time
-from turtle import update
 import json
 import ast
+import sys
+from tkinter import *
 
 
 class header:
@@ -24,7 +25,7 @@ class header:
               self.virtualBoxId, " afi: ", afi, " tag: ", tag, " address: ", address, " subnetMask")
 
     def pack(self):
-        return struct.pack('iii20sh20s13s13', self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
+        return struct.pack("iii20sh20s13s", self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
                            self.address, self.subnetMask)
 
     def isValid(self):
@@ -58,7 +59,6 @@ class tabelaRutare:
     def __init__(self, header):
         self.header = header.pack()
         self.entries = []
-        self.periodic = update
 
     def adaugareEntry(self, entry):
         self.entries.append(entry.returnareEntry())
@@ -73,7 +73,7 @@ class tabelaRutare:
         data = []
         string = ""
         k = 1
-        header = struct.unpack('iii20sh20s13s13', self.header)
+        header = struct.unpack('iii20sh20s13s', self.header)
         print("HEADERUL!")
         print(header)
         data.append(header)
@@ -81,12 +81,13 @@ class tabelaRutare:
         # string = string + line
         print(line)
         # string = string + line
-        print("|                              Routing Table                                |")
+        print(
+            "|                              Routing Table                                |")
         print(line)
         # string = string + line
         print("Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
-            header[2]) + "VirtualBoxID:" + str(header[3]) + "tag:" + str(header[4]) + "address:" + str(
-            header[5]) + "subnetMask:" + str(header[6]))
+            header[2]) + "VirtualBoxID:" + str(
+            header[3]) + "tag:" + str(header[4]) + "address:" + str(header[5]) + "subnetMask:" + str(header[6]))
         string = string + "Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
             header[2]) + "VirtualBoxID:" + str(header[3]) + "tag:" + str(header[4]) + "address:" + str(
             header[5]) + "subnetMask:" + str(header[6])
@@ -173,24 +174,6 @@ def show_packet(packet):
     data = packet.unpack()
 
 
-def comm_thread(conn, addr):
-    while 1:
-        data, addr = s.recvfrom(1024)
-        print("Am primit de la clientul: " + addr)
-        # Trimite datele receptionate
-        # header1 = header(1, str(addr))
-        header1 = header(1, '192.168.0.107')
-        entry1 = entry(1, bytes(addr), bytes('255.255.255.0'), bytes('192.168.0.106'), 0)
-        packet1 = tabelaRutare(header1)
-        entry2 = entry(1, bytes(addr), bytes('255.255.255.0'), bytes('192.168.0.104'), 0)
-        packet1.adaugareEntry(entry1)
-        packet1.adaugareEntry(entry2)
-
-        s.setsockopt(socket.IPPRTO_IP, socket.IP_MULTICAST_TTL, packet1)
-        conn.sendall(bytes(str(addr) + ' a trimis ' + packet1))
-    conn.close()
-
-
 class Graph:
     def __init__(self, vertices):
         self.V = vertices
@@ -230,6 +213,8 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 # Coada de asteptare pentru conexiuni de lungime 1
 # s.listen(5)
 # Asteapta conexiuni
+
+
 p = '224.0.0.251'
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
@@ -241,14 +226,18 @@ s.bind((p, 5000))
 # mreq=struct.pack("4sl", socket.inet_aton('224.0.0.9'), socket.INADDR_ANY)
 host = socket.gethostbyname(socket.gethostname())
 s.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
-s.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(p) + socket.inet_aton(host))
+s.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP,
+             socket.inet_aton(p) + socket.inet_aton(host))
+tabelaR = ""
+users = {'Elena': 'abcd', 'Beti': 'cdef'}
 nghbs = {}
 addrs = []
 dict = {}
 print('Asteapta conexiuni (oprire server cu Ctrl-C)')
-header1 = header(1, '192.168.0.107', 2, '192.168.0.107', '255.255.255.0')
+header1 = header(1, '192.168.0.107'.encode(), 2,
+                 '192.168.0.107'.encode(), '255.255.255.0'.encode())
 neighbours = {2: 1, 5: 1}
-s.sendto(str(neighbours), (p, 5000))
+s.sendto(str(neighbours).encode(), (p, 5000))
 acestRuter = 1
 g = Graph(6)
 for key in neighbours:
@@ -278,76 +267,177 @@ pack.adaugareEntry(entry2)
 pack.adaugareEntry(entry3)
 pack.adaugareEntry(entry4)
 pack.adaugareEntry(entry5)
-deTrimis = []
-while 1:
-    data, addr = s.recvfrom(1024)
-    print('adresa este: ', str(addr)[1:16])
-    print("s-a receptionat" + str(data))
 
-    print("Dictionarul este: ")
-    start = (str(data)).find("{") + len("{")
-    end = (str(data)).find("}")
-    substring = (str(data))[start:end]
-    res = ast.literal_eval("{" + substring + "}")
-    print(res)
-    if str(addr)[1:16] == "'192.168.0.104'":
-        addrsa = 2
-    elif str(addr)[1:16] == "'192.168.0.107'":
-        addrsa = 1
-    elif str(addr)[1:16] == "'192.168.0.111'":
-        addrsa = 5
-    elif str(addr)[1:16] == "'192.168.0.109'":
-        addrsa = 4
-    elif str(addr)[1:16] == "'192.168.0.108'":
-        addrsa = 3
-    else:
-        addrsa = 0
 
-    for add in addrs:
-        s.sendto(str(addrsa) + ":" + str(data), add)
-    for x in deTrimis:
-        s.sendto(x, addr)
-    deTrimis.append(str(addrsa) + ":" + str(data))
+class GUI:
+    def __init__(self):
+        self.Window = Tk()
+        self.Window.withdraw()
+        self.login = Toplevel()
+        self.login.title("Login")
+        self.login.resizable(width=False, height=False)
+        self.login.configure(width=400, height=300)
+        self.pls = Label(self.login, text="Please login to continue", justify=CENTER, font="Helvetica 14 bold")
+        self.pls.place(relheight=0.15, relx=0.2, rely=0.07)
+        self.labelName = Label(self.login, text="Name: ", font="Helvetica 12")
+        self.labelName.place(relheight=0.2, relx=0.1, rely=0.2)
+        self.entryName = Entry(self.login,
+                               font="Helvetica 14")
 
-    print("fsssssssssssssssssssssssss")
-    print(str(data)[0:1])
-    for key in res:
-        if str(data)[0:1] == '1':
-            g.addEdge(1, key, res[key])
-        if str(data)[0:1] == '2':
-            g.addEdge(2, key, res[key])
-        if str(data)[0:1] == '3':
-            g.addEdge(3, key, res[key])
-        if str(data)[0:1] == '4':
-            g.addEdge(4, key, res[key])
-        if str(data)[0:1] == '5':
-            g.addEdge(5, key, res[key])
-    addrs.append(addr)
-    print(g.BellmanFord(acestRuter))
-    a = g.BellmanFord(acestRuter)
-    if a[1] == float("Inf"):
-        a[1] = 1000
-    if a[2] == float("Inf"):
-        a[2] = 1000
-    if a[3] == float("Inf"):
-        a[3] = 1000
-    if a[4] == float("Inf"):
-        a[4] = 1000
-    if a[5] == float("Inf"):
-        a[5] = 1000
-    entry1 = entry(1, a[1])
-    entry2 = entry(2, a[2])
-    entry3 = entry(3, a[3])
-    entry4 = entry(4, a[4])
-    entry5 = entry(5, a[5])
-    pack.stergereEntries()
-    pack.adaugareEntry(entry1)
-    pack.adaugareEntry(entry2)
-    pack.adaugareEntry(entry3)
-    pack.adaugareEntry(entry4)
-    pack.adaugareEntry(entry5)
+        self.entryName.place(relwidth=0.4,
+                             relheight=0.12,
+                             relx=0.35,
+                             rely=0.2)
+        self.entryName.focus()
+        self.go = Button(self.login, text="CONTINUE", font="Helvetica 14 bold",
+                         command=lambda: self.goAhead(self.entryName.get()))
+        self.go.place(relx=0.4, rely=0.55)
+        self.Window.mainloop()
 
-    pack.unpack()
+    def goAhead(self, name):
+        self.login.destroy()
+        self.layout(name)
+
+        # the thread to receive messages
+        rcv = threading.Thread(target=self.receive)
+        rcv.start()
+
+    def layout(self, name):
+        self.name = name
+        # to show chat window
+        self.Window.deiconify()
+        self.Window.title("Afisare tabela rutare")
+        self.Window.resizable(width=False,
+                              height=False)
+        self.Window.configure(width=470,
+                              height=550,
+                              bg="#17202A")
+        self.labelHead = Label(self.Window,
+                               bg="#17202A",
+                               fg="#EAECEE",
+                               text=self.name,
+                               font="Helvetica 13 bold",
+                               pady=5)
+
+        self.labelHead.place(relwidth=1)
+        self.line = Label(self.Window,
+                          width=450,
+                          bg="#ABB2B9")
+
+        self.line.place(relwidth=1,
+                        rely=0.07,
+                        relheight=0.012)
+
+        self.textCons = Text(self.Window,
+                             width=20,
+                             height=2,
+                             bg="#17202A",
+                             fg="#EAECEE",
+                             font="Helvetica 14",
+                             padx=5,
+                             pady=5)
+
+        self.textCons.place(relheight=0.745,
+                            relwidth=1,
+                            rely=0.08)
+
+        self.labelBottom = Label(self.Window,
+                                 bg="#ABB2B9",
+                                 height=80)
+
+        self.labelBottom.place(relwidth=1,
+                               rely=0.825)
+
+        self.entryMsg = Entry(self.labelBottom,
+                              bg="#2C3E50",
+                              fg="#EAECEE",
+                              font="Helvetica 13")
+
+    def receive(self):
+        deTrimis = []
+        while 1:
+
+            dat, addr = s.recvfrom(1024)
+            data = dat.decode()
+            print('adresa este: ', str(addr)[1:16])
+            print("s-a receptionat" + str(data))
+
+            print("Dictionarul este: ")
+            start = (str(data)).find("{") + len("{")
+            end = (str(data)).find("}")
+            substring = (str(data))[start:end]
+            res = ast.literal_eval("{" + substring + "}")
+            print(res)
+            if str(addr)[1:16] == "'192.168.0.104'":
+                addrsa = 2
+            elif str(addr)[1:16] == "'192.168.0.107'":
+                addrsa = 1
+            elif str(addr)[1:16] == "'192.168.0.111'":
+                addrsa = 5
+            elif str(addr)[1:16] == "'192.168.0.109'":
+                addrsa = 4
+            elif str(addr)[1:16] == "'192.168.0.108'":
+                addrsa = 3
+            else:
+                addrsa = 0
+
+            for add in addrs:
+                s.sendto(((str(addrsa)) + ":" + str(data)).encode(), add)
+            for x in deTrimis:
+                s.sendto(x.encode(), addr)
+            deTrimis.append(str(addrsa) + ":" + str(data))
+
+            print("fsssssssssssssssssssssssss")
+            print(str(data)[0:1])
+            for key in res:
+                if addrsa == 1:
+                    g.addEdge(1, key, res[key])
+                if addrsa == 2:
+                    g.addEdge(2, key, res[key])
+                if addrsa == 3:
+                    g.addEdge(3, key, res[key])
+                if addrsa == 4:
+                    g.addEdge(4, key, res[key])
+                if addrsa == 5:
+                    g.addEdge(5, key, res[key])
+            addrs.append(addr)
+            print(g.BellmanFord(acestRuter))
+            a = g.BellmanFord(acestRuter)
+            if a[1] == float("Inf"):
+                a[1] = 1000
+            if a[2] == float("Inf"):
+                a[2] = 1000
+            if a[3] == float("Inf"):
+                a[3] = 1000
+            if a[4] == float("Inf"):
+                a[4] = 1000
+            if a[5] == float("Inf"):
+                a[5] = 1000
+            entry1 = entry(1, a[1])
+            entry2 = entry(2, a[2])
+            entry3 = entry(3, a[3])
+            entry4 = entry(4, a[4])
+            entry5 = entry(5, a[5])
+            pack.stergereEntries()
+            pack.adaugareEntry(entry1)
+            pack.adaugareEntry(entry2)
+            pack.adaugareEntry(entry3)
+            pack.adaugareEntry(entry4)
+            pack.adaugareEntry(entry5)
+
+            message = pack.unpack()
+            self.textCons.config(state=NORMAL)
+            self.textCons.insert(END, message + "\n\n")
+
+            self.textCons.config(state=DISABLED)
+            self.textCons.see(END)
+
+
+q = GUI()
+
+
+
+
 
 
 
