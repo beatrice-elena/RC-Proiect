@@ -1,5 +1,5 @@
-
-import socket, time
+import socket
+import time
 import struct
 import socket
 import threading
@@ -7,10 +7,12 @@ import socket
 import struct
 import time
 import json
-from turtle import update
+
 import ast
+
+
 class header:
-    def __init__(self, command, virtualBoxId,tag,address,subnetMask):
+    def __init__(self, command, virtualBoxId, tag, address, subnetMask):
         self.command = command
         self.version = 2
         self.setUnused = 0
@@ -22,10 +24,11 @@ class header:
 
     def showH(self):
         print("Command:", self.command, " Version:", self.version, " setUnused:", self.setUnused, " VirtualBoxID:",
-              self.virtualBoxId, " afi: ", afi, " tag: ", tag, " address: ", address, " subnetMask")
+              self.virtualBoxId, " afi: ", self.afi, " tag: ", self.tag, " address: ", self.address, " subnetMask")
 
     def pack(self):
-        return struct.pack('iii20sh20s13s13', self.command, self.version, self.setUnused, self.virtualBoxId, self.tag, self.address, self.subnetMask)
+        return struct.pack('iii20sh20s13s', self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
+                           self.address, self.subnetMask)
 
     def isValid(self):
         if (self.command not in [1, 2]):
@@ -34,10 +37,10 @@ class header:
 
 
 class entry:
-    def __init__(self,  nextHop, metric):
+    def __init__(self, nextHop, metric):
         self.nextHop = nextHop
         self.metric = metric
-       
+
     def returnareEntry(self):
         return struct.pack('ii', self.nextHop, self.metric)
 
@@ -58,7 +61,6 @@ class tabelaRutare:
     def __init__(self, header):
         self.header = header.pack()
         self.entries = []
-        self.periodic = update
 
     def adaugareEntry(self, entry):
         self.entries.append(entry.returnareEntry())
@@ -73,27 +75,33 @@ class tabelaRutare:
         data = []
         string = ""
         k = 1
-        header = struct.unpack('iii20sh20s13s13', self.header)
+        header = struct.unpack('iii20sh20s13s', self.header)
         print("HEADERUL!")
         print(header)
         data.append(header)
         line = "+-----------+----------+-----------+---------------+----------+-------------+"
-        #string = string + line
+        # string = string + line
         print(line)
-        #string = string + line
-        print("|                              Routing Table                                |")
+        # string = string + line
+        print(
+            "|                              Routing Table                                |")
         print(line)
-        #string = string + line
-        print("Command:"+str(header[0])+ "VERSION:"+ str(header[1])+ "setUnused:"+ str(header[2])+"VirtualBoxID:"+ str(header[3])+"tag:"+str(header[4])+"address:"+str(header[5])+"subnetMask:"+str(header[6]))
-        string=string+"Command:"+str(header[0])+ "VERSION:"+ str(header[1])+ "setUnused:"+ str(header[2])+"VirtualBoxID:"+ str(header[3])+"tag:"+str(header[4])+"address:"+str(header[5])+"subnetMask:"+str(header[6])
+        # string = string + line
+        print("Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
+            header[2]) + "VirtualBoxID:" + str(
+            header[3].decode()) + "tag:" + str(header[4]) + "address:" + str(header[5].decode()) + "subnetMask:" + str(
+            header[6].decode()))
+        string = string + "Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
+            header[2]) + "VirtualBoxID:" + str(header[3]) + "tag:" + str(header[4]) + "address:" + str(
+            header[5]) + "subnetMask:" + str(header[6])
         print(line)
-        #string = string + line
+        # string = string + line
         for x in range(len(self.entries)):
-            w=struct.unpack('ii', self.entries[x])
+            w = struct.unpack('ii', self.entries[x])
             print("NextHop:", str(w[0]), "Metric:", w[1])
-            string = string +"NextHop:"+ str(w[0])+ "Metric:"+ str(w[1])
+            string = string + "NextHop:" + str(w[0]) + "Metric:" + str(w[1])
             print(line)
-            #string = string + line
+            # string = string + line
             # k=k+1
         return string
 
@@ -105,9 +113,10 @@ class tabelaRutare:
             self.adaugareEntry(entry)
         if (flag == 0):
             self.deleteEntry(entry)
+
     def stergereEntries(self):
-    	for entry in self.entries:
-    		self.entries.remove(entry)
+        # for entry in self.entries:
+        self.entries[:] = []
 
 
 class ruter:
@@ -166,70 +175,78 @@ class Connection:
 
 def show_packet(packet):
     data = packet.unpack()
-    
 
-#Bellman-Ford de pe geeksforgeeks
+
+# Bellman-Ford de pe geeksforgeeks
 class Graph:
-	def __init__(self, vertices):
-		self.V=vertices
-		self.graph=[]
-	def addEdge(self,u,v,w):
-		self.graph.append([u,v,w])
-	def printArr(self, dist):
-		print("Vertex distance from source")
-		for i in range(self.V):
-			print("{0}\t\t{1}".format(i,dist[i]))
-	def BellmanFord(self, src):
-		dist=[float("Inf")]*self.V
-		dist[src]=0
-		for _ in range (self.V-1):
-			for u, v, w in self.graph:
-				if dist[u]!=float("Inf") and dist[u]+w<dist[v]:
-					dist[v]=dist[u]+w
-		for u,v,w in self.graph:
-			if dist[u]!=float("Inf") and dist[u]+w<dist[v]:
-				print("Graph contains negative weight cycle")
-				return
-		self.printArr(dist)
-		return dist
-adresa='192.168.0.101'				
-neighbours2={"192.168.0.107":1, "192.168.0.111":1, "192.168.0.108":1}
-neighbours={1:1, 5:1, 3:1}
-rute=[]
-acestRuter=2	
-s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-s.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL,32)
-p2='192.168.0.107'
-p='224.0.0.251'
-#s.connect(("192.168.0.107",5000))
-#s.connect(("224.0.0.9",5000))
-#s.sendall(str(neighbours) )
-s.sendto("2:"+str(neighbours),(p,5000))
-g=Graph(6)
+    def __init__(self, vertices):
+        self.V = vertices
+        self.graph = []
+
+    def addEdge(self, u, v, w):
+        self.graph.append([u, v, w])
+
+    def printArr(self, dist):
+        print("Vertex distance from source")
+        for i in range(self.V):
+            print("{0}\t\t{1}".format(i, dist[i]))
+
+    def BellmanFord(self, src):
+        dist = [float("Inf")] * self.V
+        dist[src] = 0
+        for _ in range(self.V - 1):
+            for u, v, w in self.graph:
+                if dist[u] != float("Inf") and dist[u] + w < dist[v]:
+                    dist[v] = dist[u] + w
+        for u, v, w in self.graph:
+            if dist[u] != float("Inf") and dist[u] + w < dist[v]:
+                print("Graph contains negative weight cycle")
+                return
+        self.printArr(dist)
+        return dist
+
+
+adresa = '192.168.0.101'
+neighbours2 = {"192.168.0.107": 1, "192.168.0.111": 1, "192.168.0.108": 1}
+neighbours = {1: 1, 5: 1, 3: 1}
+rute = []
+acestRuter = 2
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
+p2 = '192.168.0.107'
+p = '224.0.0.251'
+# s.connect(("192.168.0.107",5000))
+# s.connect(("224.0.0.9",5000))
+# s.sendall(str(neighbours) )
+s.sendto(("2:" + str(neighbours)).encode(), (p, 5000))
+print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+print(("2:" + str(neighbours)).encode())
+g = Graph(6)
 for key in neighbours:
-	g.addEdge(acestRuter,key,neighbours[key])
+    g.addEdge(acestRuter, key, neighbours[key])
 
 print(g.BellmanFord(acestRuter))
-a=g.BellmanFord(acestRuter)
+a = g.BellmanFord(acestRuter)
 print("ssssssssssssssssssssssssss")
 print(a[1], a[2], a[3], a[4], a[5])
-if a[1]==float("Inf") :
-    a[1]=1000
-if a[2]==float("Inf") :
-    a[2]=1000
-if a[3]==float("Inf") :
-    a[3]=1000
-if a[4]==float("Inf"):
-    a[4]=1000
-if a[5]==float("Inf") :
-    a[5]=1000
-entry1=entry(1,a[1])
-entry2=entry(2,a[2])
-entry3=entry(3,a[3])
-entry4=entry(4,a[4])
-entry5=entry(5,a[5])
-header1=header(1,'192.168.0.101',2,'192.168.0.101','255.255.255.0')
-pack=tabelaRutare(header1)
+if a[1] == float("Inf"):
+    a[1] = 1000
+if a[2] == float("Inf"):
+    a[2] = 1000
+if a[3] == float("Inf"):
+    a[3] = 1000
+if a[4] == float("Inf"):
+    a[4] = 1000
+if a[5] == float("Inf"):
+    a[5] = 1000
+entry1 = entry(1, a[1])
+entry2 = entry(2, a[2])
+entry3 = entry(3, a[3])
+entry4 = entry(4, a[4])
+entry5 = entry(5, a[5])
+header1 = header(1, '192.168.0.104'.encode(), 2, '192.168.0.104'.encode(), '255.255.255.0'.encode())
+pack = tabelaRutare(header1)
+pack.stergereEntries()
 pack.adaugareEntry(entry1)
 pack.adaugareEntry(entry2)
 pack.adaugareEntry(entry3)
@@ -238,52 +255,66 @@ pack.adaugareEntry(entry5)
 pack.unpack()
 
 while True:
-	data=s.recvfrom(2048)
-	print('Am receptionat:', data)
-	rute.append(str(data))
-	print('adresa ar trebuie sa fie: ', str(data)[2:3])
-	start=(str(data)).find("{")+len("{")
-	end=(str(data)).find("}")
-	substring=(str(data))[start:end]
-	print('si dictionarul: ', "{"+substring+"}")
-	dictt=ast.literal_eval("{"+substring+"}")
-	print("speram sa iasa")
-	print(dictt)
-	for key in dictt:
-		if str(data)[2:3]=='1':
-			g.addEdge(1, key, dictt[key])
-		if str(data)[2:3]=='2':
-			g.addEdge(2, key, dictt[key])
-		if str(data)[2:3]=='3':
-			g.addEdge(3, key, dictt[key])
-		if str(data)[2:3]=='4':
-			g.addEdge(4, key, dictt[key])
-		if str(data)[2:3]=='5':
-			g.addEdge(5, key, dictt[key])	
-	print("Incercare Bellman-Ford")
-	print(g.BellmanFord(acestRuter))
-        a=g.BellmanFord(acestRuter)
-        if a[1]==float("Inf") :
-             a[1]=1000
-        if a[2]==float("Inf") :
-            a[2]=1000
-        if a[3]==float("Inf") :
-            a[3]=1000
-        if a[4]==float("Inf") :
-            a[4]=1000
-        if a[5]==float("Inf") :
-            a[5]=1000
-        entry1=entry(1,a[1])
-        entry2=entry(2,a[2])
-        entry3=entry(3,a[3])
-        entry4=entry(4,a[4])
-        entry5=entry(5,a[5])
-        pack.stergereEntries()
-        pack.adaugareEntry(entry1)
-        pack.adaugareEntry(entry2)
-        pack.adaugareEntry(entry3)
-        pack.adaugareEntry(entry4)
-        pack.adaugareEntry(entry5)
-      
-        pack.unpack()
+    data = s.recvfrom(2048)
+    # data = dat.decode();
+    print('Am receptionat:', data)
+    rute.append(str(data))
+    print('adresa ar trebuie sa fie: ', str(data)[2:3])
+    start = (str(data)).find("{") + len("{")
+    end = (str(data)).find("}")
+    substring = (str(data))[start:end]
+    print('si dictionarul: ', "{" + substring + "}")
+    dictt = ast.literal_eval("{" + substring + "}")
+    print("speram sa iasa")
+    print(dictt)
+    for key in dictt:
+        if str(data)[2:3] == '1':
+            g.addEdge(1, key, dictt[key])
+        if str(data)[2:3] == '2':
+            g.addEdge(2, key, dictt[key])
+        if str(data)[2:3] == '3':
+            g.addEdge(3, key, dictt[key])
+        if str(data)[2:3] == '4':
+            g.addEdge(4, key, dictt[key])
+        if str(data)[2:3] == '5':
+            g.addEdge(5, key, dictt[key])
+    print("Incercare Bellman-Ford")
+    a = g.BellmanFord(acestRuter)
+    print(g.BellmanFord(acestRuter))
+    if a[5] == float("Inf"):
+        a[5] = 1000
+    if a[4] == float("Inf"):
+        a[4] = 1000
+    if a[3] == float("Inf"):
+        a[3] = 1000
+    if a[2] == float("Inf"):
+        a[2] = 1000
+    if a[1] == float("Inf"):
+        a[1] = 10000
+    entry1 = entry(1, a[1])
+    entry2 = entry(2, a[2])
+    entry3 = entry(3, a[3])
+    entry4 = entry(4, a[4])
+    entry5 = entry(5, a[5])
+    pack.stergereEntries()
+    pack.adaugareEntry(entry1)
+    pack.adaugareEntry(entry2)
+    pack.adaugareEntry(entry3)
+    pack.adaugareEntry(entry4)
+    pack.adaugareEntry(entry5)
+    pack.unpack()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
