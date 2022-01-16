@@ -4,11 +4,12 @@ import socket
 import struct
 import time
 from turtle import update
+import json
 import ast
 
 
 class header:
-    def __init__(self, command, virtualBoxId,tag,address,subnetMask):
+    def __init__(self, command, virtualBoxId, tag, address, subnetMask):
         self.command = command
         self.version = 2
         self.setUnused = 0
@@ -18,8 +19,13 @@ class header:
         self.address = address
         self.subnetMask = subnetMask
 
+    def showH(self):
+        print("Command:", self.command, " Version:", self.version, " setUnused:", self.setUnused, " VirtualBoxID:",
+              self.virtualBoxId, " afi: ", afi, " tag: ", tag, " address: ", address, " subnetMask")
+
     def pack(self):
-        return struct.pack('iii20sh20s13s13', self.command, self.version, self.setUnused, self.virtualBoxId, self.tag, self.address, self.subnetMask)
+        return struct.pack('iii20sh20s13s13', self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
+                           self.address, self.subnetMask)
 
     def isValid(self):
         if (self.command not in [1, 2]):
@@ -72,22 +78,26 @@ class tabelaRutare:
         print(header)
         data.append(header)
         line = "+-----------+----------+-----------+---------------+----------+-------------+"
-        #string = string + line
+        # string = string + line
         print(line)
-        #string = string + line
+        # string = string + line
         print("|                              Routing Table                                |")
         print(line)
-        #string = string + line
-        print("Command:"+str(header[0])+ "VERSION:"+ str(header[1])+ "setUnused:"+ str(header[2])+"VirtualBoxID:"+ str(header[3])+"tag:"+str(header[4])+"address:"+str(header[5])+"subnetMask:"+str(header[6]))
-        string=string+"Command:"+str(header[0])+ "VERSION:"+ str(header[1])+ "setUnused:"+ str(header[2])+"VirtualBoxID:"+ str(header[3])+"tag:"+str(header[4])+"address:"+str(header[5])+"subnetMask:"+str(header[6])
+        # string = string + line
+        print("Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
+            header[2]) + "VirtualBoxID:" + str(header[3]) + "tag:" + str(header[4]) + "address:" + str(
+            header[5]) + "subnetMask:" + str(header[6]))
+        string = string + "Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
+            header[2]) + "VirtualBoxID:" + str(header[3]) + "tag:" + str(header[4]) + "address:" + str(
+            header[5]) + "subnetMask:" + str(header[6])
         print(line)
-        #string = string + line
+        # string = string + line
         for x in range(len(self.entries)):
-            w=struct.unpack('ii', self.entries[x])
+            w = struct.unpack('ii', self.entries[x])
             print("NextHop:", str(w[0]), "Metric:", w[1])
-            string = string +"NextHop:"+ str(w[0])+ "Metric:"+ str(w[1])
+            string = string + "NextHop:" + str(w[0]) + "Metric:" + str(w[1])
             print(line)
-            #string = string + line
+            # string = string + line
             # k=k+1
         return string
 
@@ -99,11 +109,10 @@ class tabelaRutare:
             self.adaugareEntry(entry)
         if (flag == 0):
             self.deleteEntry(entry)
+
     def stergereEntries(self):
-    	#for entry in self.entries:
-    	self.entries[:]=[]
-
-
+        # for entry in self.entries:
+        self.entries[:] = []
 
 
 class ruter:
@@ -158,6 +167,28 @@ class Connection:
 
     def __repr__(self):
         return "Conexiune".format(self.port)
+
+
+def show_packet(packet):
+    data = packet.unpack()
+
+
+def comm_thread(conn, addr):
+    while 1:
+        data, addr = s.recvfrom(1024)
+        print("Am primit de la clientul: " + addr)
+        # Trimite datele receptionate
+        # header1 = header(1, str(addr))
+        header1 = header(1, '192.168.0.107')
+        entry1 = entry(1, bytes(addr), bytes('255.255.255.0'), bytes('192.168.0.106'), 0)
+        packet1 = tabelaRutare(header1)
+        entry2 = entry(1, bytes(addr), bytes('255.255.255.0'), bytes('192.168.0.104'), 0)
+        packet1.adaugareEntry(entry1)
+        packet1.adaugareEntry(entry2)
+
+        s.setsockopt(socket.IPPRTO_IP, socket.IP_MULTICAST_TTL, packet1)
+        conn.sendall(bytes(str(addr) + ' a trimis ' + packet1))
+    conn.close()
 
 
 class Graph:
@@ -247,6 +278,7 @@ pack.adaugareEntry(entry2)
 pack.adaugareEntry(entry3)
 pack.adaugareEntry(entry4)
 pack.adaugareEntry(entry5)
+deTrimis = []
 while 1:
     data, addr = s.recvfrom(1024)
     print('adresa este: ', str(addr)[1:16])
@@ -258,7 +290,7 @@ while 1:
     substring = (str(data))[start:end]
     res = ast.literal_eval("{" + substring + "}")
     print(res)
-    if str(addr)[1:16] == "'192.168.0.101'":
+    if str(addr)[1:16] == "'192.168.0.104'":
         addrsa = 2
     elif str(addr)[1:16] == "'192.168.0.107'":
         addrsa = 1
@@ -268,9 +300,15 @@ while 1:
         addrsa = 4
     elif str(addr)[1:16] == "'192.168.0.108'":
         addrsa = 3
+    else:
+        addrsa = 0
 
     for add in addrs:
         s.sendto(str(addrsa) + ":" + str(data), add)
+    for x in deTrimis:
+        s.sendto(x, addr)
+    deTrimis.append(str(addrsa) + ":" + str(data))
+
     print("fsssssssssssssssssssssssss")
     print(str(data)[0:1])
     for key in res:
@@ -310,3 +348,6 @@ while 1:
     pack.adaugareEntry(entry5)
 
     pack.unpack()
+
+
+
