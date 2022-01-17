@@ -7,6 +7,8 @@ import json
 import ast
 import sys
 from tkinter import *
+import tkinter as tk
+import time
 
 
 class header:
@@ -22,7 +24,7 @@ class header:
 
     def showH(self):
         print("Command:", self.command, " Version:", self.version, " setUnused:", self.setUnused, " VirtualBoxID:",
-              self.virtualBoxId, " afi: ", afi, " tag: ", tag, " address: ", address, " subnetMask")
+              self.virtualBoxId, " afi: ", self.afi, " tag: ", self.tag, " address: ", self.address, " subnetMask")
 
     def pack(self):
         return struct.pack("iii20sh20s13s", self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
@@ -182,6 +184,16 @@ class Graph:
     def addEdge(self, u, v, w):
         self.graph.append([u, v, w])
 
+    def delEdge(self, u, v, w):
+        if [u, v, w] in self.graph:
+            print("a reusssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss")
+            self.graph.remove([u, v, w])
+
+    def printare(self):
+        print("PRINTARE:")
+        for x in self.graph:
+            print(x)
+
     def printArr(self, dist):
         print("Vertex distance from source")
         for i in range(self.V):
@@ -267,6 +279,11 @@ pack.adaugareEntry(entry2)
 pack.adaugareEntry(entry3)
 pack.adaugareEntry(entry4)
 pack.adaugareEntry(entry5)
+m = 1
+v = 0
+flag = 0
+update = 0
+old_m = 0
 
 
 class GUI:
@@ -302,15 +319,93 @@ class GUI:
         rcv = threading.Thread(target=self.receive)
         rcv.start()
 
+    def setM(self, me):
+        global m
+        if (me != "" and me.isnumeric()):
+            m = int(me, 10)
+            if (m > 15):
+                print("metrica nu poate fi mai mare decat 15!")
+                m = 1
+        else:
+            m = 1
+
+        print(m)
+
+    def setV(self, ve):
+        global v
+        if (ve != "" and ve.isnumeric()):
+            v = int(ve, 10)
+            if (v > 5):
+                print("ati introdus gresit vecinul")
+                v = 0
+        else:
+            v = 0
+
+        print(v)
+
+    def update(self):
+        global neighbours
+        global v
+        global m
+        global old_m
+        global g
+        if v in neighbours:
+            if (neighbours[v] != m):
+                old_m = neighbours[v]
+                neighbours[v] = m
+                flag = 1
+                if (True):
+                    print("vecinii ar fi trebuit sa fieeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+                    print(neighbours)
+                    pack.stergereEntries()
+                    g = Graph(6)
+
+                    for key in neighbours:
+                        print(v)
+                        print(m)
+                        g.addEdge(acestRuter, key, neighbours[key])
+
+                    g.printare()
+                    g.delEdge(acestRuter, v, old_m)
+                    print(g.BellmanFord(acestRuter))
+                    a = g.BellmanFord(acestRuter)
+                    print("ssssssssssssssssssssssssss")
+                    print(a[1], a[2], a[3], a[4], a[5])
+                    if a[1] == float("Inf"):
+                        a[1] = 1000
+                    if a[2] == float("Inf"):
+                        a[2] = 1000
+                    if a[3] == float("Inf"):
+                        a[3] = 1000
+                    if a[4] == float("Inf"):
+                        a[4] = 1000
+                    if a[5] == float("Inf"):
+                        a[5] = 1000
+                    entry1 = entry(1, a[1])
+                    entry2 = entry(2, a[2])
+                    entry3 = entry(3, a[3])
+                    entry4 = entry(4, a[4])
+                    entry5 = entry(5, a[5])
+                    pack.stergereEntries()
+                    pack.adaugareEntry(entry1)
+                    pack.adaugareEntry(entry2)
+                    pack.adaugareEntry(entry3)
+                    pack.adaugareEntry(entry4)
+                    pack.adaugareEntry(entry5)
+                    pack.unpack()
+                    s.sendto(("1:" + str(neighbours)).encode(), (p, 5000))
+                    flag = 0
+
     def layout(self, name):
+
         self.name = name
         # to show chat window
         self.Window.deiconify()
         self.Window.title("Afisare tabela rutare")
-        self.Window.resizable(width=False,
-                              height=False)
-        self.Window.configure(width=470,
-                              height=550,
+        self.Window.resizable(width=True,
+                              height=True)
+        self.Window.configure(width=800,
+                              height=800,
                               bg="#17202A")
         self.labelHead = Label(self.Window,
                                bg="#17202A",
@@ -347,97 +442,175 @@ class GUI:
 
         self.labelBottom.place(relwidth=1,
                                rely=0.825)
+        self.labelM = Label(self.Window, text="Cost: ", font="Helvetica 12")
+        self.labelM.place(relheight=0.1, relx=0., rely=0.9)
+        self.entryM = Entry(self.Window,
+                            font="Helvetica 14")
 
-        self.entryMsg = Entry(self.labelBottom,
-                              bg="#2C3E50",
-                              fg="#EAECEE",
-                              font="Helvetica 13")
+        self.entryM.place(relwidth=0.1,
+                          relheight=0.1,
+                          relx=0.15, rely=0.9)
+
+        self.labelV = Label(self.Window, text="Vecin: ", font="Helvetica 12")
+        self.labelV.place(relheight=0.1, relx=0.35, rely=0.9)
+        self.entryV = Entry(self.Window,
+                            font="Helvetica 14")
+
+        self.entryV.place(relwidth=0.1,
+                          relheight=0.1,
+                          relx=0.45,
+                          rely=0.9)
+        self.getM = Button(self.Window, text="getM", font="Helvetica 14 bold",
+                           command=lambda: self.setM(self.entryM.get()))
+        self.getM.place(relx=0.25, rely=0.9)
+        self.getV = Button(self.Window, text="getV", font="Helvetica 14 bold",
+                           command=lambda: self.setV(self.entryV.get()))
+        self.getV.place(relx=0.55, rely=0.9)
+        # tk.Label(self.Window, text="Metrica").grid(row=20)
+        # e1=tk.Entry(self.Window)
+        # e1.grid(row=20, column=30)
+        self.get = Button(self.Window, text="update", font="Helvetica 14 bold", command=lambda: self.update())
+        self.get.place(relx=0.75, rely=0.9)
 
     def receive(self):
         deTrimis = []
+        global g
+        global v
+        global m
+        global old_m
         while 1:
 
             dat, addr = s.recvfrom(1024)
             data = dat.decode()
-            print('adresa este: ', str(addr)[1:16])
-            print("s-a receptionat" + str(data))
+            print('adresa este: ', str(addr)[2:11])
+            print(str(addr)[2:11])
+            print(str('127.0.1.1'))
+            if (str(addr)[2:11] == str('127.0.1.1')):
+                print("okkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+                pack.stergereEntries()
+                g.delEdge(acestRuter, v, old_m)
+                for key in neighbours:
+                    print(key)
+                    print(neighbours[key])
+                    g.addEdge(acestRuter, key, neighbours[key])
+                g.printare()
+                print(g.BellmanFord(acestRuter))
+                a = g.BellmanFord(acestRuter)
+                print("ssssssssssssssssssssssssss")
+                print(a[1], a[2], a[3], a[4], a[5])
+                if a[1] == float("Inf"):
+                    a[1] = 1000
+                if a[2] == float("Inf"):
+                    a[2] = 1000
+                if a[3] == float("Inf"):
+                    a[3] = 1000
+                if a[4] == float("Inf"):
+                    a[4] = 1000
+                if a[5] == float("Inf"):
+                    a[5] = 1000
+                entry1 = entry(1, a[1])
+                entry2 = entry(2, a[2])
+                entry3 = entry(3, a[3])
+                entry4 = entry(4, a[4])
+                entry5 = entry(5, a[5])
+                pack.stergereEntries()
+                pack.adaugareEntry(entry1)
+                pack.adaugareEntry(entry2)
+                pack.adaugareEntry(entry3)
+                pack.adaugareEntry(entry4)
+                pack.adaugareEntry(entry5)
 
-            print("Dictionarul este: ")
-            start = (str(data)).find("{") + len("{")
-            end = (str(data)).find("}")
-            substring = (str(data))[start:end]
-            res = ast.literal_eval("{" + substring + "}")
-            print(res)
-            if str(addr)[1:16] == "'192.168.0.104'":
-                addrsa = 2
-            elif str(addr)[1:16] == "'192.168.0.107'":
-                addrsa = 1
-            elif str(addr)[1:16] == "'192.168.0.111'":
-                addrsa = 5
-            elif str(addr)[1:16] == "'192.168.0.109'":
-                addrsa = 4
-            elif str(addr)[1:16] == "'192.168.0.108'":
-                addrsa = 3
+                for add in addrs:
+                    s.sendto(("1:" + ":" + str(data)).encode(), add)
+                    print(("1:" + ":" + str(data)).encode())
+
+                deTrimis.append("1" + ":" + str(data))
+                print("44444444444444444444444444444444444444444444444444444444444444")
+                print("1" + ":" + str(data))
+                message = pack.unpack()
+                self.textCons.config(state=NORMAL)
+                self.textCons.insert(END, message + "\n\n")
+
+                self.textCons.config(state=DISABLED)
+                self.textCons.see(END)
+
+
+
+
+
             else:
-                addrsa = 0
 
-            for add in addrs:
-                s.sendto(((str(addrsa)) + ":" + str(data)).encode(), add)
-            for x in deTrimis:
-                s.sendto(x.encode(), addr)
-            deTrimis.append(str(addrsa) + ":" + str(data))
+                print("s-a receptionat" + str(data))
+                s.sendto(str(neighbours).encode(), (p, 5000))
+                print("Dictionarul este: ")
+                start = (str(data)).find("{") + len("{")
+                end = (str(data)).find("}")
+                substring = (str(data))[start:end]
+                res = ast.literal_eval("{" + substring + "}")
+                print(res)
+                if str(addr)[1:16] == "'192.168.0.104'":
+                    addrsa = 2
+                elif str(addr)[1:16] == "'192.168.0.107'":
+                    addrsa = 1
+                elif str(addr)[1:16] == "'192.168.0.111'":
+                    addrsa = 5
+                elif str(addr)[1:16] == "'192.168.0.109'":
+                    addrsa = 4
+                elif str(addr)[1:16] == "'192.168.0.108'":
+                    addrsa = 3
+                else:
+                    addrsa = 0
 
-            print("fsssssssssssssssssssssssss")
-            print(str(data)[0:1])
-            for key in res:
-                if addrsa == 1:
-                    g.addEdge(1, key, res[key])
-                if addrsa == 2:
-                    g.addEdge(2, key, res[key])
-                if addrsa == 3:
-                    g.addEdge(3, key, res[key])
-                if addrsa == 4:
-                    g.addEdge(4, key, res[key])
-                if addrsa == 5:
-                    g.addEdge(5, key, res[key])
-            addrs.append(addr)
-            print(g.BellmanFord(acestRuter))
-            a = g.BellmanFord(acestRuter)
-            if a[1] == float("Inf"):
-                a[1] = 1000
-            if a[2] == float("Inf"):
-                a[2] = 1000
-            if a[3] == float("Inf"):
-                a[3] = 1000
-            if a[4] == float("Inf"):
-                a[4] = 1000
-            if a[5] == float("Inf"):
-                a[5] = 1000
-            entry1 = entry(1, a[1])
-            entry2 = entry(2, a[2])
-            entry3 = entry(3, a[3])
-            entry4 = entry(4, a[4])
-            entry5 = entry(5, a[5])
-            pack.stergereEntries()
-            pack.adaugareEntry(entry1)
-            pack.adaugareEntry(entry2)
-            pack.adaugareEntry(entry3)
-            pack.adaugareEntry(entry4)
-            pack.adaugareEntry(entry5)
+                for add in addrs:
+                    s.sendto(((str(addrsa)) + ":" + str(data)).encode(), add)
+                for x in deTrimis:
+                    s.sendto(x.encode(), addr)
+                deTrimis.append(str(addrsa) + ":" + str(data))
 
-            message = pack.unpack()
-            self.textCons.config(state=NORMAL)
-            self.textCons.insert(END, message + "\n\n")
+                print("fsssssssssssssssssssssssss")
+                print(str(data)[0:1])
+                for key in res:
+                    if addrsa == 1:
+                        g.addEdge(1, key, res[key])
+                    if addrsa == 2:
+                        g.addEdge(2, key, res[key])
+                    if addrsa == 3:
+                        g.addEdge(3, key, res[key])
+                    if addrsa == 4:
+                        g.addEdge(4, key, res[key])
+                    if addrsa == 5:
+                        g.addEdge(5, key, res[key])
+                addrs.append(addr)
+                print(g.BellmanFord(acestRuter))
+                a = g.BellmanFord(acestRuter)
+                if a[1] == float("Inf"):
+                    a[1] = 1000
+                if a[2] == float("Inf"):
+                    a[2] = 1000
+                if a[3] == float("Inf"):
+                    a[3] = 1000
+                if a[4] == float("Inf"):
+                    a[4] = 1000
+                if a[5] == float("Inf"):
+                    a[5] = 1000
+                entry1 = entry(1, a[1])
+                entry2 = entry(2, a[2])
+                entry3 = entry(3, a[3])
+                entry4 = entry(4, a[4])
+                entry5 = entry(5, a[5])
+                pack.stergereEntries()
+                pack.adaugareEntry(entry1)
+                pack.adaugareEntry(entry2)
+                pack.adaugareEntry(entry3)
+                pack.adaugareEntry(entry4)
+                pack.adaugareEntry(entry5)
 
-            self.textCons.config(state=DISABLED)
-            self.textCons.see(END)
+                message = pack.unpack()
+                self.textCons.config(state=NORMAL)
+                self.textCons.insert(END, message + "\n\n")
+
+                self.textCons.config(state=DISABLED)
+                self.textCons.see(END)
 
 
 q = GUI()
-
-
-
-
-
-
-
