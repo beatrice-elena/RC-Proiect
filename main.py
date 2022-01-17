@@ -9,6 +9,7 @@ import sys
 from tkinter import *
 import tkinter as tk
 import time
+import multiprocessing
 
 
 class header:
@@ -284,6 +285,20 @@ v = 0
 flag = 0
 update = 0
 old_m = 0
+timerr = 1
+threadRunning = 1
+
+
+def comm_thread(button1, button2, button3):
+    print("s-a pornit")
+    global stopThread
+    while threadRunning:
+        global timerr
+        print("s-a apasat")
+        button1.invoke()
+        button2.invoke()
+        button3.invoke()
+        time.sleep(int(timerr))
 
 
 class GUI:
@@ -342,6 +357,19 @@ class GUI:
             v = 0
 
         print(v)
+
+    def setTimer(self, tm, button1, button2, button3):
+        global timerr
+        global threadRunning
+        if (tm.isnumeric()):
+            # proc.terminate()
+            timerr = tm
+            # proc=multiprocessing.Process(target=comm_thread, args=(button1,button2, button3))
+            # proc.start()
+            threadRunning = 0
+            # t=threading.Thread(target=comm_thread, args=(button1,button2, button3)).start()
+            threadRunning = 1
+            t = threading.Thread(target=comm_thread, args=(self.getM, self.getV, self.get)).start()
 
     def update(self):
         global neighbours
@@ -432,7 +460,7 @@ class GUI:
                              padx=5,
                              pady=5)
 
-        self.textCons.place(relheight=0.745,
+        self.textCons.place(relheight=0.500,
                             relwidth=1,
                             rely=0.08)
 
@@ -442,22 +470,22 @@ class GUI:
 
         self.labelBottom.place(relwidth=1,
                                rely=0.825)
-        self.labelM = Label(self.Window, text="Cost: ", font="Helvetica 12")
-        self.labelM.place(relheight=0.1, relx=0., rely=0.9)
+        self.labelM = Label(self.Window, text="Costul:: ", font="Helvetica 12")
+        self.labelM.place(relheight=0.07, relx=0., rely=0.9)
         self.entryM = Entry(self.Window,
                             font="Helvetica 14")
 
         self.entryM.place(relwidth=0.1,
-                          relheight=0.1,
+                          relheight=0.07,
                           relx=0.15, rely=0.9)
 
         self.labelV = Label(self.Window, text="Vecin: ", font="Helvetica 12")
-        self.labelV.place(relheight=0.1, relx=0.35, rely=0.9)
+        self.labelV.place(relheight=0.07, relx=0.35, rely=0.9)
         self.entryV = Entry(self.Window,
                             font="Helvetica 14")
 
         self.entryV.place(relwidth=0.1,
-                          relheight=0.1,
+                          relheight=0.07,
                           relx=0.45,
                           rely=0.9)
         self.getM = Button(self.Window, text="getM", font="Helvetica 14 bold",
@@ -471,6 +499,23 @@ class GUI:
         # e1.grid(row=20, column=30)
         self.get = Button(self.Window, text="update", font="Helvetica 14 bold", command=lambda: self.update())
         self.get.place(relx=0.75, rely=0.9)
+
+        self.labelTimer = Label(self.Window, text="Timer: ", font="Helvetica 12")
+        self.labelTimer.place(relheight=0.07, relx=0., rely=0.8)
+        self.entryTimer = Entry(self.Window,
+                                font="Helvetica 14")
+
+        self.entryTimer.place(relwidth=0.1,
+                              relheight=0.07,
+                              relx=0.15, rely=0.8)
+
+        t = threading.Thread(target=comm_thread, args=(self.getM, self.getV, self.get)).start()
+        # proc=multiprocessing.Process(target=comm_thread, args=(self.getM,self.getV, self.get))
+        # proc.start()
+
+        self.getT = Button(self.Window, text="getTime", font="Helvetica 14 bold",
+                           command=lambda: self.setTimer(self.entryTimer.get(), self.getM, self.getV, self.get))
+        self.getT.place(relx=0.25, rely=0.8)
 
     def receive(self):
         deTrimis = []
