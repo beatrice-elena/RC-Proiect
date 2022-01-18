@@ -12,6 +12,7 @@ import time
 import multiprocessing
 
 
+# clasa header reprezinta header-ul tabelei de rutare, conform RIPv2
 class header:
     def __init__(self, command, virtualBoxId, tag, address, subnetMask):
         self.command = command
@@ -25,7 +26,7 @@ class header:
 
     def showH(self):
         print("Command:", self.command, " Version:", self.version, " setUnused:", self.setUnused, " VirtualBoxID:",
-              self.virtualBoxId, " afi: ", self.afi, " tag: ", self.tag, " address: ", self.address, " subnetMask")
+              self.virtualBoxId, " afi: ", afi, " tag: ", tag, " address: ", address, " subnetMask")
 
     def pack(self):
         return struct.pack("iii20sh20s13s", self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
@@ -37,6 +38,7 @@ class header:
             return False
 
 
+# clasa entry reprezinta adaugarile care se fac tabelei de rutare pentru a pastra destinatia si metrica
 class entry:
     def __init__(self, nextHop, metric):
         self.nextHop = nextHop
@@ -56,6 +58,7 @@ class entry:
         self.metric = x
 
 
+# tabelaRutare este clasa care combina header-ul cu entry-urile pentru a compune tabela de rutare finala a masinii virtuale folosite
 class tabelaRutare:
     entries = []
 
@@ -114,54 +117,10 @@ class tabelaRutare:
         if (flag == 0):
             self.deleteEntry(entry)
 
+    # cand adaugam noi entry-uri in tabela de rutare, trebuie sa le stergem pe cele vechi pentru a nu ne afisa de mai multe ori aceeasi destinatie-metrica
     def stergereEntries(self):
         # for entry in self.entries:
         self.entries[:] = []
-
-
-class ruter:
-    def __init__(self, inputPorts, outputPorts, tabelaRutare):
-        self.inputPorts = []
-        self.inputPorts.append(inputPorts)
-        self.outputPorts = []
-        self.outputPorts.append(outputPorts)
-        self.index = 0
-        self.neighbours = []
-
-        self.create_sockets()
-
-        self.conexiuni = {}
-        self.lista_conexiuni = []
-        self.conexiuni_output = []
-        self.tabelaRutare = tabelaRutare
-
-    def add_neighbours(self):
-        self.index = self.index + 1
-        for x in range(len(self.outputPorts)):
-            self.neighbours.append(self.outputPorts[x])
-
-    def show_neighbours(self):
-        for x in range(len(self.neighbours)):
-            print(self.neighbours[x])
-
-    def periodic_updates(self):
-        global running
-        while running:
-            for x in range(len(tabelaRutare.entries)):
-                self.send(tabelaRutare.entries[x])
-            time.sleep(30)
-
-    def send(self, x):
-        pass
-
-    def populate_table(self, data, entry):
-        port = data[1][1]
-        if port not in self.tabelaRutare.get_addresses():
-            print(port, self.outputPorts)
-            for metric, id in self.outputPorts:
-                cost = metric
-            entry.setMetric(cost)
-            self.tabelaRutare.adaugareEntry(entry)
 
 
 class Connection:
@@ -177,6 +136,8 @@ def show_packet(packet):
     data = packet.unpack()
 
 
+# aceasta clasa este folosita pentru a forma graful folosit la calculul BellmanFord
+
 class Graph:
     def __init__(self, vertices):
         self.V = vertices
@@ -187,7 +148,6 @@ class Graph:
 
     def delEdge(self, u, v, w):
         if [u, v, w] in self.graph:
-            print("a reusssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss")
             self.graph.remove([u, v, w])
 
     def printare(self):
@@ -196,7 +156,7 @@ class Graph:
             print(x)
 
     def printArr(self, dist):
-        print("Vertex distance from source")
+        print("Distanta de la sursa")
         for i in range(self.V):
             print("{0}\t\t{1}".format(i, dist[i]))
 
@@ -209,27 +169,24 @@ class Graph:
                     dist[v] = dist[u] + w
         for u, v, w in self.graph:
             if dist[u] != float("Inf") and dist[u] + w < dist[v]:
-                print("Graph contains negative weight cycle")
+                print("Graful contine cicluri negative")
                 return
-        print("aici")
         print(dist)
 
         self.printArr(dist)
         return dist
 
 
-# Creaza un socket IPv4, TCP
+# Creaza un socket UDP
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
-# Asociere la adresa locala, portul 5000
-
-# Coada de asteptare pentru conexiuni de lungime 1
-# s.listen(5)
-# Asteapta conexiuni
-
-
+# adresa multicast
 p = '224.0.0.251'
+
+# reuseaddr permite refolosirea adreselor locale
+# am folosit SOL_SOCKET deoarece este folosit pentru optiuni care sunt independente de protocolul folosit
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# am folosit IP_MULTICAST_LOOP pentru a putea avea o aplicatie cu mai mult receptori si emitatori
 s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
 s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
 IS_ALL_GROUPS = True
@@ -255,20 +212,22 @@ acestRuter = 1
 g = Graph(6)
 for key in neighbours:
     g.addEdge(acestRuter, key, neighbours[key])
+# calculam entry-urile din tabela de rutare initiala a acestei masini virtuale
 print(g.BellmanFord(acestRuter))
 a = g.BellmanFord(acestRuter)
 print("ssssssssssssssssssssssssss")
 print(a[1], a[2], a[3], a[4], a[5])
+# intrucat RIPv2 nu poate avea o topologie de maxim 15, vom pune 16 care reprezinta infinitul
 if a[1] == float("Inf"):
-    a[1] = 1000
+    a[1] = 16
 if a[2] == float("Inf"):
-    a[2] = 1000
+    a[2] = 16
 if a[3] == float("Inf"):
-    a[3] = 1000
+    a[3] = 16
 if a[4] == float("Inf"):
-    a[4] = 1000
+    a[4] = 16
 if a[5] == float("Inf"):
-    a[5] = 1000
+    a[5] = 16
 entry1 = entry(1, a[1])
 entry2 = entry(2, a[2])
 entry3 = entry(3, a[3])
@@ -285,13 +244,14 @@ v = 0
 flag = 0
 update = 0
 old_m = 0
-timerr = 1
+timerr = 30
 threadRunning = 1
 
 
+# acesta este thread-ul care va apasa butonul de update de cate ori este specificat in timerr
 def comm_thread(button1, button2, button3):
     print("s-a pornit")
-    global stopThread
+    global threadRunning
     while threadRunning:
         global timerr
         print("s-a apasat")
@@ -383,7 +343,6 @@ class GUI:
                 neighbours[v] = m
                 flag = 1
                 if (True):
-                    print("vecinii ar fi trebuit sa fieeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
                     print(neighbours)
                     pack.stergereEntries()
                     g = Graph(6)
@@ -400,15 +359,15 @@ class GUI:
                     print("ssssssssssssssssssssssssss")
                     print(a[1], a[2], a[3], a[4], a[5])
                     if a[1] == float("Inf"):
-                        a[1] = 1000
+                        a[1] = 16
                     if a[2] == float("Inf"):
-                        a[2] = 1000
+                        a[2] = 16
                     if a[3] == float("Inf"):
-                        a[3] = 1000
+                        a[3] = 16
                     if a[4] == float("Inf"):
-                        a[4] = 1000
+                        a[4] = 16
                     if a[5] == float("Inf"):
-                        a[5] = 1000
+                        a[5] = 16
                     entry1 = entry(1, a[1])
                     entry2 = entry(2, a[2])
                     entry3 = entry(3, a[3])
@@ -423,6 +382,8 @@ class GUI:
                     pack.unpack()
                     s.sendto(("1:" + str(neighbours)).encode(), (p, 5000))
                     flag = 0
+        else:
+            s.sendto(("1:" + str(neighbours)).encode(), (p, 5000))
 
     def layout(self, name):
 
@@ -524,14 +485,14 @@ class GUI:
         global m
         global old_m
         while 1:
-
             dat, addr = s.recvfrom(1024)
             data = dat.decode()
             print('adresa este: ', str(addr)[2:11])
             print(str(addr)[2:11])
             print(str('127.0.1.1'))
+
             if (str(addr)[2:11] == str('127.0.1.1')):
-                print("okkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+
                 pack.stergereEntries()
                 g.delEdge(acestRuter, v, old_m)
                 for key in neighbours:
@@ -544,15 +505,15 @@ class GUI:
                 print("ssssssssssssssssssssssssss")
                 print(a[1], a[2], a[3], a[4], a[5])
                 if a[1] == float("Inf"):
-                    a[1] = 1000
+                    a[1] = 16
                 if a[2] == float("Inf"):
-                    a[2] = 1000
+                    a[2] = 16
                 if a[3] == float("Inf"):
-                    a[3] = 1000
+                    a[3] = 16
                 if a[4] == float("Inf"):
-                    a[4] = 1000
+                    a[4] = 16
                 if a[5] == float("Inf"):
-                    a[5] = 1000
+                    a[5] = 16
                 entry1 = entry(1, a[1])
                 entry2 = entry(2, a[2])
                 entry3 = entry(3, a[3])
@@ -570,7 +531,6 @@ class GUI:
                     print(("1:" + ":" + str(data)).encode())
 
                 deTrimis.append("1" + ":" + str(data))
-                print("44444444444444444444444444444444444444444444444444444444444444")
                 print("1" + ":" + str(data))
                 message = pack.unpack()
                 self.textCons.config(state=NORMAL)
@@ -593,6 +553,7 @@ class GUI:
                 substring = (str(data))[start:end]
                 res = ast.literal_eval("{" + substring + "}")
                 print(res)
+
                 if str(addr)[1:16] == "'192.168.0.104'":
                     addrsa = 2
                 elif str(addr)[1:16] == "'192.168.0.107'":
@@ -608,11 +569,11 @@ class GUI:
 
                 for add in addrs:
                     s.sendto(((str(addrsa)) + ":" + str(data)).encode(), add)
+
                 for x in deTrimis:
                     s.sendto(x.encode(), addr)
                 deTrimis.append(str(addrsa) + ":" + str(data))
 
-                print("fsssssssssssssssssssssssss")
                 print(str(data)[0:1])
                 for key in res:
                     if addrsa == 1:
@@ -625,19 +586,20 @@ class GUI:
                         g.addEdge(4, key, res[key])
                     if addrsa == 5:
                         g.addEdge(5, key, res[key])
+
                 addrs.append(addr)
                 print(g.BellmanFord(acestRuter))
                 a = g.BellmanFord(acestRuter)
                 if a[1] == float("Inf"):
-                    a[1] = 1000
+                    a[1] = 16
                 if a[2] == float("Inf"):
-                    a[2] = 1000
+                    a[2] = 16
                 if a[3] == float("Inf"):
-                    a[3] = 1000
+                    a[3] = 16
                 if a[4] == float("Inf"):
-                    a[4] = 1000
+                    a[4] = 16
                 if a[5] == float("Inf"):
-                    a[5] = 1000
+                    a[5] = 16
                 entry1 = entry(1, a[1])
                 entry2 = entry(2, a[2])
                 entry3 = entry(3, a[3])
