@@ -10,7 +10,7 @@ from tkinter import *
 import tkinter as tk
 import time
 import multiprocessing
-
+from tkinter.messagebox import showinfo
 
 # clasa header reprezinta header-ul tabelei de rutare, conform RIPv2
 class header:
@@ -28,10 +28,9 @@ class header:
         print("Command:", self.command, " Version:", self.version, " setUnused:", self.setUnused, " VirtualBoxID:",
               self.virtualBoxId, " afi: ", afi, " tag: ", tag, " address: ", address, " subnetMask")
 
-    def pack(self):
-        return struct.pack("iii20sh20s13s", self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
+  def pack(self):
+        return struct.pack("iii11sh11s13s", self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
                            self.address, self.subnetMask)
-
     def isValid(self):
         if (self.command not in [1, 2]):
             print("Invalid command in header")
@@ -75,11 +74,11 @@ class tabelaRutare:
     def deleteEntry(self, entry):
         self.entries.remove(entry.returnareEntry())
 
-    def unpack(self):
+     def unpack(self):
         data = []
         string = ""
         k = 1
-        header = struct.unpack('iii20sh20s13s', self.header)
+        header = struct.unpack('iii11sh11s13s', self.header)
         print("HEADERUL!")
         print(header)
         data.append(header)
@@ -91,18 +90,17 @@ class tabelaRutare:
             "|                              Routing Table                                |")
         print(line)
         # string = string + line
-        print("Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
+        print("Command: " + str(header[0]) + "\nVERSION: " + str(header[1]) + "\nsetUnused: " + str(
             header[2]) + "VirtualBoxID:" + str(
             header[3]) + "tag:" + str(header[4]) + "address:" + str(header[5]) + "subnetMask:" + str(header[6]))
-        string = string + "Command:" + str(header[0]) + "VERSION:" + str(header[1]) + "setUnused:" + str(
-            header[2]) + "VirtualBoxID:" + str(header[3]) + "tag:" + str(header[4]) + "address:" + str(
-            header[5]) + "subnetMask:" + str(header[6])
+        string = string + "Command: " + str(header[0]) + "\nVERSION: " + str(header[1]) + "\nSetUnused: " + str(
+            header[2])  + "\nTag: " + str(header[4]) + "\nAddress: " + (str(header[5])).replace('b\'','').replace('\'','') + "\nSubnetMask: " + (str(header[6])).replace('b\'','').replace('\'','')
         print(line)
         # string = string + line
         for x in range(len(self.entries)):
             w = struct.unpack('ii', self.entries[x])
             print("NextHop:", str(w[0]), "Metric:", w[1])
-            string = string + "NextHop:" + str(w[0]) + "Metric:" + str(w[1])
+            string = string + "\nNextHop: "  + str(w[0]) + " Metric: " + str(w[1])
             print(line)
             # string = string + line
             # k=k+1
@@ -271,29 +269,41 @@ class GUI:
         self.login.configure(width=400, height=300)
         self.pls = Label(self.login, text="Please login to continue", justify=CENTER, font="Helvetica 14 bold")
         self.pls.place(relheight=0.15, relx=0.2, rely=0.07)
-        self.labelName = Label(self.login, text="Name: ", font="Helvetica 12")
-        self.labelName.place(relheight=0.2, relx=0.1, rely=0.2)
+        self.labelName1 = Label(self.login, text="Username: ", font="Helvetica 12")
+        self.labelName1.place(relheight=0.2, relx=0.1, rely=0.2)
+        self.labelName2 = Label(self.login, text="Password: ", font="Helvetica 12")
+        self.labelName2.place(relheight=0.2, relx=0.1, rely=0.4)
+        password=tk.StringVar()
+        username=tk.StringVar()
+        self.entryName1 = Entry(self.login, textvariable=password, show='*')
+
+        self.entryName1.place(relwidth=0.4,
+                             relheight=0.12,
+                             relx=0.35,
+                             rely=0.4)
         self.entryName = Entry(self.login,
-                               font="Helvetica 14")
+                               
+                               textvariable=username)
 
         self.entryName.place(relwidth=0.4,
                              relheight=0.12,
                              relx=0.35,
                              rely=0.2)
         self.entryName.focus()
+       
         self.go = Button(self.login, text="CONTINUE", font="Helvetica 14 bold",
-                         command=lambda: self.goAhead(self.entryName.get()))
+                         command=lambda: self.goAhead(username.get(), password.get()))
         self.go.place(relx=0.4, rely=0.55)
         self.Window.mainloop()
-
-    def goAhead(self, name):
-        self.login.destroy()
-        self.layout(name)
-
-        # the thread to receive messages
-        rcv = threading.Thread(target=self.receive)
-        rcv.start()
-
+    def goAhead(self, username, password):
+        if(username=='beti' and password=='beti' or username=='elena' and password=='elena'):
+            self.login.destroy()
+            self.layout(username)
+            rcv = threading.Thread(target=self.receive)
+            rcv.start()
+        else:
+            showinfo(title="Eroare", message="Username sau parola gresita ")
+           
     def setM(self, me):
         global m
         if (me != "" and me.isnumeric()):
@@ -431,30 +441,28 @@ class GUI:
 
         self.labelBottom.place(relwidth=1,
                                rely=0.825)
-        self.labelM = Label(self.Window, text="Costul:: ", font="Helvetica 12")
-        self.labelM.place(relheight=0.07, relx=0., rely=0.9)
+        self.labelM = Label(self.Window, text="Costul: ", font="Helvetica 12")
+        self.labelM.place(relwidth=0.1, relheight=0.04, relx=0., rely=0.9)
         self.entryM = Entry(self.Window,
                             font="Helvetica 14")
 
-        self.entryM.place(relwidth=0.1,
-                          relheight=0.07,
-                          relx=0.15, rely=0.9)
+        self.entryM.place(relwidth=0.1, relheight=0.04,
+                          relx=0.13, rely=0.9)
 
         self.labelV = Label(self.Window, text="Vecin: ", font="Helvetica 12")
-        self.labelV.place(relheight=0.07, relx=0.35, rely=0.9)
+        self.labelV.place(relwidth=0.1, relheight=0.04, relx=0, rely=0.7)
         self.entryV = Entry(self.Window,
                             font="Helvetica 14")
 
-        self.entryV.place(relwidth=0.1,
-                          relheight=0.07,
-                          relx=0.45,
-                          rely=0.9)
-        self.getM = Button(self.Window, text="getM", font="Helvetica 14 bold",
+        self.entryV.place(relwidth=0.1, relheight=0.04,
+                          relx=0.13,
+                          rely=0.7)
+        self.getM = Button(self.Window, text="Adauga Metrica", font="Helvetica 14 bold",
                            command=lambda: self.setM(self.entryM.get()))
-        self.getM.place(relx=0.25, rely=0.9)
-        self.getV = Button(self.Window, text="getV", font="Helvetica 14 bold",
+        self.getM.place(relwidth=0.3, relheight=0.04, relx=0.25, rely=0.9)
+        self.getV = Button(self.Window, text="Adauga Vecin", font="Helvetica 14 bold",
                            command=lambda: self.setV(self.entryV.get()))
-        self.getV.place(relx=0.55, rely=0.9)
+        self.getV.place(relwidth=0.3, relheight=0.04,relx=0.25, rely=0.7)
         # tk.Label(self.Window, text="Metrica").grid(row=20)
         # e1=tk.Entry(self.Window)
         # e1.grid(row=20, column=30)
@@ -462,21 +470,21 @@ class GUI:
         self.get.place(relx=0.75, rely=0.9)
 
         self.labelTimer = Label(self.Window, text="Timer: ", font="Helvetica 12")
-        self.labelTimer.place(relheight=0.07, relx=0., rely=0.8)
+        self.labelTimer.place(relwidth=0.1, relheight=0.04, relx=0, rely=0.8)
         self.entryTimer = Entry(self.Window,
                                 font="Helvetica 14")
 
         self.entryTimer.place(relwidth=0.1,
-                              relheight=0.07,
-                              relx=0.15, rely=0.8)
+                              relheight=0.04,
+                              relx=0.13, rely=0.8)
 
         t = threading.Thread(target=comm_thread, args=(self.getM, self.getV, self.get)).start()
         # proc=multiprocessing.Process(target=comm_thread, args=(self.getM,self.getV, self.get))
         # proc.start()
 
-        self.getT = Button(self.Window, text="getTime", font="Helvetica 14 bold",
+        self.getT = Button(self.Window, text="Adauga Timer", font="Helvetica 14 bold",
                            command=lambda: self.setTimer(self.entryTimer.get(), self.getM, self.getV, self.get))
-        self.getT.place(relx=0.25, rely=0.8)
+        self.getT.place(relwidth=0.3, relheight=0.04, relx=0.25, rely=0.8)
 
     def receive(self):
         deTrimis = []
