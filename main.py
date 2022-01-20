@@ -9,8 +9,10 @@ import sys
 from tkinter import *
 import tkinter as tk
 import time
+import re
 import multiprocessing
 from tkinter.messagebox import showinfo
+
 
 # clasa header reprezinta header-ul tabelei de rutare, conform RIPv2
 class header:
@@ -31,6 +33,7 @@ class header:
     def pack(self):
         return struct.pack("iii11sh11s13s", self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
                            self.address, self.subnetMask)
+
     def isValid(self):
         if (self.command not in [1, 2]):
             print("Invalid command in header")
@@ -39,12 +42,16 @@ class header:
 
 # clasa entry reprezinta adaugarile care se fac tabelei de rutare pentru a pastra destinatia si metrica
 class entry:
-    def __init__(self, nextHop, metric):
-        self.nextHop = nextHop
+    def __init__(self, dest, metric, nextHop):
+        self.dest = dest
         self.metric = metric
+        self.nextHop = nextHop
+
+    def getDest(self):
+        return self.dest
 
     def returnareEntry(self):
-        return struct.pack('ii', self.nextHop, self.metric)
+        return struct.pack('ii13s', self.dest, self.metric, self.nextHop)
 
     def isValidEntry(self):
         if (self.metric > 15):
@@ -55,6 +62,12 @@ class entry:
 
     def setMetric(self, x):
         self.metric = x
+
+    def getNextHop(self):
+        return self.nextHop
+
+    def getMetric(self):
+        return self.metric
 
 
 # tabelaRutare este clasa care combina header-ul cu entry-urile pentru a compune tabela de rutare finala a masinii virtuale folosite
@@ -68,11 +81,28 @@ class tabelaRutare:
     def adaugareEntry(self, entry):
         self.entries.append(entry.returnareEntry())
 
+    def returnEntries(self):
+        return self.entries
+
+    def getNextHop(self, x):
+        d = 2
+        for entry in self.entries:
+            entry.decode()
+            print(entry.decode())
+            if x == entry.getDest():
+                d = entry.getNextHop()
+        return d
+
     def clear(self):
         self.entries = []
 
     def deleteEntry(self, entry):
         self.entries.remove(entry.returnareEntry())
+
+    def getMetric(self, dest):
+        for entry in self.entries:
+            if entry.getDest == x:
+                return entry.getMetric()
 
     def unpack(self):
         data = []
@@ -94,20 +124,22 @@ class tabelaRutare:
             header[2]) + "VirtualBoxID:" + str(
             header[3]) + "tag:" + str(header[4]) + "address:" + str(header[5]) + "subnetMask:" + str(header[6]))
         string = string + "Command: " + str(header[0]) + "\nVERSION: " + str(header[1]) + "\nSetUnused: " + str(
-            header[2])  + "\nTag: " + str(header[4]) + "\nAddress: " + (str(header[5])).replace('b\'','').replace('\'','') + "\nSubnetMask: " + (str(header[6])).replace('b\'','').replace('\'','')
+            header[2]) + "\nTag: " + str(header[4]) + "\nAddress: " + (str(header[5])).replace('b\'', '').replace('\'',
+                                                                                                                  '') + "\nSubnetMask: " + (
+                     str(header[6])).replace('b\'', '').replace('\'', '')
         print(line)
         # string = string + line
         for x in range(len(self.entries)):
-            w = struct.unpack('ii', self.entries[x])
-            print("NextHop:", str(w[0]), "Metric:", w[1])
-            string = string + "\nNextHop: "  + str(w[0]) + " Metric: " + str(w[1])
+            w = struct.unpack('ii13s', self.entries[x])
+            print("Dest:", str(w[0]), "Metric:", w[1], "NextHop:", w[2])
+            string = string + "\nDest: " + str(w[0]) + " Metric: " + str(w[1]) + "NextHop:" + w[2].decode()
             print(line)
             # string = string + line
             # k=k+1
         return string
 
-    def set_nexthop(self, nextHop):
-        self.nextHop = nextHop
+    def set_dest(self, dest):
+        self.dest = dest
 
     def updateTable(self, entry, flag):
         if (flag == 1):
@@ -226,11 +258,14 @@ if a[4] == float("Inf"):
     a[4] = 16
 if a[5] == float("Inf"):
     a[5] = 16
-entry1 = entry(1, a[1])
-entry2 = entry(2, a[2])
-entry3 = entry(3, a[3])
-entry4 = entry(4, a[4])
-entry5 = entry(5, a[5])
+adresaRuter = '192.168.0.101'.encode()
+entry1 = entry(1, a[1], adresaRuter)
+print("xxxxxxxxxxxxxxxxxxxxxx")
+print(entry1.getNextHop())
+entry2 = entry(2, a[2], adresaRuter)
+entry3 = entry(3, a[3], adresaRuter)
+entry4 = entry(4, a[4], adresaRuter)
+entry5 = entry(5, a[5], adresaRuter)
 pack = tabelaRutare(header1)
 pack.adaugareEntry(entry1)
 pack.adaugareEntry(entry2)
@@ -273,16 +308,16 @@ class GUI:
         self.labelName1.place(relheight=0.2, relx=0.1, rely=0.2)
         self.labelName2 = Label(self.login, text="Password: ", font="Helvetica 12")
         self.labelName2.place(relheight=0.2, relx=0.1, rely=0.4)
-        password=tk.StringVar()
-        username=tk.StringVar()
+        password = tk.StringVar()
+        username = tk.StringVar()
         self.entryName1 = Entry(self.login, textvariable=password, show='*')
 
         self.entryName1.place(relwidth=0.4,
-                             relheight=0.12,
-                             relx=0.35,
-                             rely=0.4)
+                              relheight=0.12,
+                              relx=0.35,
+                              rely=0.4)
         self.entryName = Entry(self.login,
-                               
+
                                textvariable=username)
 
         self.entryName.place(relwidth=0.4,
@@ -290,20 +325,21 @@ class GUI:
                              relx=0.35,
                              rely=0.2)
         self.entryName.focus()
-       
+
         self.go = Button(self.login, text="CONTINUE", font="Helvetica 14 bold",
                          command=lambda: self.goAhead(username.get(), password.get()))
         self.go.place(relx=0.4, rely=0.55)
         self.Window.mainloop()
+
     def goAhead(self, username, password):
-        if(username=='beti' and password=='beti' or username=='elena' and password=='elena'):
+        if (username == 'beti' and password == 'beti' or username == 'elena' and password == 'elena'):
             self.login.destroy()
             self.layout(username)
             rcv = threading.Thread(target=self.receive)
             rcv.start()
         else:
             showinfo(title="Eroare", message="Username sau parola gresita ")
-           
+
     def setM(self, me):
         global m
         if (me != "" and me.isnumeric()):
@@ -347,6 +383,7 @@ class GUI:
         global m
         global old_m
         global g
+        global pack
         if v in neighbours:
             if (neighbours[v] != m):
                 old_m = neighbours[v]
@@ -378,11 +415,12 @@ class GUI:
                         a[4] = 16
                     if a[5] == float("Inf"):
                         a[5] = 16
-                    entry1 = entry(1, a[1])
-                    entry2 = entry(2, a[2])
-                    entry3 = entry(3, a[3])
-                    entry4 = entry(4, a[4])
-                    entry5 = entry(5, a[5])
+                    entry1 = entry(1, a[1], adresaRuter)
+                    print(entry1.getNextHop())
+                    entry2 = entry(2, a[2], adresaRuter)
+                    entry3 = entry(3, a[3], adresaRuter)
+                    entry4 = entry(4, a[4], adresaRuter)
+                    entry5 = entry(5, a[5], adresaRuter)
                     pack.stergereEntries()
                     pack.adaugareEntry(entry1)
                     pack.adaugareEntry(entry2)
@@ -462,7 +500,7 @@ class GUI:
         self.getM.place(relwidth=0.3, relheight=0.04, relx=0.25, rely=0.9)
         self.getV = Button(self.Window, text="Adauga Vecin", font="Helvetica 14 bold",
                            command=lambda: self.setV(self.entryV.get()))
-        self.getV.place(relwidth=0.3, relheight=0.04,relx=0.25, rely=0.7)
+        self.getV.place(relwidth=0.3, relheight=0.04, relx=0.25, rely=0.7)
         # tk.Label(self.Window, text="Metrica").grid(row=20)
         # e1=tk.Entry(self.Window)
         # e1.grid(row=20, column=30)
@@ -492,6 +530,8 @@ class GUI:
         global v
         global m
         global old_m
+        global pack
+
         while 1:
             dat, addr = s.recvfrom(1024)
             data = dat.decode()
@@ -501,7 +541,7 @@ class GUI:
 
             if (str(addr)[2:11] == str('127.0.1.1')):
 
-                pack.stergereEntries()
+                # pack.stergereEntries()
                 g.delEdge(acestRuter, v, old_m)
                 for key in neighbours:
                     print(key)
@@ -510,7 +550,6 @@ class GUI:
                 g.printare()
                 print(g.BellmanFord(acestRuter))
                 a = g.BellmanFord(acestRuter)
-                print("ssssssssssssssssssssssssss")
                 print(a[1], a[2], a[3], a[4], a[5])
                 if a[1] == float("Inf"):
                     a[1] = 16
@@ -522,11 +561,27 @@ class GUI:
                     a[4] = 16
                 if a[5] == float("Inf"):
                     a[5] = 16
-                entry1 = entry(1, a[1])
-                entry2 = entry(2, a[2])
-                entry3 = entry(3, a[3])
-                entry4 = entry(4, a[4])
-                entry5 = entry(5, a[5])
+
+                strng = pack.unpack()
+
+                print(strng)
+
+                print(strng.split("\t"))
+                incercare = strng.split("\t")
+                incercare2 = str(incercare).split("NextHop:")
+
+                nxtHop1 = incercare2[1][0:13]
+
+                nxtHop2 = incercare2[2][0:13]
+                nxtHop3 = incercare2[3][0:13]
+                nxtHop4 = incercare2[4][0:13]
+                nxtHop5 = incercare2[5][0:13]
+
+                entry1 = entry(1, a[1], nxtHop1.encode())
+                entry2 = entry(2, a[2], nxtHop2.encode())
+                entry3 = entry(3, a[3], nxtHop3.encode())
+                entry4 = entry(4, a[4], nxtHop4.encode())
+                entry5 = entry(5, a[5], nxtHop5.encode())
                 pack.stergereEntries()
                 pack.adaugareEntry(entry1)
                 pack.adaugareEntry(entry2)
@@ -553,6 +608,7 @@ class GUI:
 
             else:
 
+                addHop = str(addr)[2:15]
                 print("s-a receptionat" + str(data))
                 s.sendto(str(neighbours).encode(), (p, 5000))
                 print("Dictionarul este: ")
@@ -608,11 +664,66 @@ class GUI:
                     a[4] = 16
                 if a[5] == float("Inf"):
                     a[5] = 16
-                entry1 = entry(1, a[1])
-                entry2 = entry(2, a[2])
-                entry3 = entry(3, a[3])
-                entry4 = entry(4, a[4])
-                entry5 = entry(5, a[5])
+                strng = pack.unpack()
+
+                print(strng)
+                print("rrrrrrrrrrrrrrrrrrrrrrrrrrr")
+                print(strng.split("\t"))
+                incercare = strng.split("\t")
+                incercare2 = str(incercare).split("NextHop:")
+                metrici = str(incercare).split("Metric: ")
+
+                nxtHop1 = incercare2[1][0:13]
+
+                nxtHop2 = incercare2[2][0:13]
+                nxtHop3 = incercare2[3][0:13]
+                nxtHop4 = incercare2[4][0:13]
+                nxtHop5 = incercare2[5][0:13]
+                if (metrici[1][0:2] == 16):
+                    m1 = 16
+                else:
+                    m1 = metrici[1][0:1]
+                if (metrici[2][0:2] == 16):
+                    m2 = 16
+                else:
+                    m2 = metrici[3][0:1]
+                if (metrici[3][0:2] == 16):
+                    m3 = 16
+                else:
+                    m3 = metrici[3][0:1]
+                if (metrici[4][0:2] == 16):
+                    m4 = 16
+                else:
+                    m4 = metrici[4][0:1]
+                if (metrici[5][0:2] == 16):
+                    m5 = 16
+                else:
+                    m5 = metrici[5][0:1]
+                if m1 == a[1] or m1 == 0:
+                    entry1 = entry(1, a[1], addHop.encode())
+                else:
+                    entry1 = entry(1, a[1], nxtHop1.encode())
+
+                if m2 == a[2] or m1 == 0:
+                    entry1 = entry(2, a[2], addHop.encode())
+                else:
+                    entry1 = entry(2, a[2], nxtHop2.encode())
+                print(m3)
+                if m3 == a[3] or m1 == 0:
+                    entry1 = entry(3, a[3], addHop.encode())
+                else:
+                    entry1 = entry(3, a[3], nxtHop3.encode())
+
+                if m4 == a[4] or m1 == 0:
+                    entry1 = entry(4, a[4], addHop.encode())
+                else:
+                    entry1 = entry(4, a[4], nxtHop4.encode())
+
+                if m5 == a[5] or m1 == 0:
+                    entry1 = entry(5, a[5], addHop.encode())
+                else:
+                    entry1 = entry(5, a[5], nxtHop5.encode())
+
                 pack.stergereEntries()
                 pack.adaugareEntry(entry1)
                 pack.adaugareEntry(entry2)
