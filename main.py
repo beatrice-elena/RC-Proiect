@@ -28,7 +28,7 @@ class header:
         print("Command:", self.command, " Version:", self.version, " setUnused:", self.setUnused, " VirtualBoxID:",
               self.virtualBoxId, " afi: ", afi, " tag: ", tag, " address: ", address, " subnetMask")
 
-  def pack(self):
+    def pack(self):
         return struct.pack("iii11sh11s13s", self.command, self.version, self.setUnused, self.virtualBoxId, self.tag,
                            self.address, self.subnetMask)
     def isValid(self):
@@ -74,7 +74,7 @@ class tabelaRutare:
     def deleteEntry(self, entry):
         self.entries.remove(entry.returnareEntry())
 
-     def unpack(self):
+    def unpack(self):
         data = []
         string = ""
         k = 1
